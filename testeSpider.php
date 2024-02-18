@@ -4,7 +4,16 @@ require_once('vendor/autoload.php');
 
 include 'index.php';
 
+
 $spider = new SintegraSpider();
+$dataArray = $spider->fetchData();
+
+if (empty($dataArray)) {
+    echo "O NúMERO DE CONTROLE DIGITADO NO CAPTCHA NãO CORRESPONDE AO NúMERO APRESENTADO NA IMAGEM.\n";
+} else {
+    echo "Dados do CNPJ\n";
+    print_r($dataArray);
+}
 
 // CNPJs para testar
 // $cnpjs = [
@@ -12,11 +21,5 @@ $spider = new SintegraSpider();
 //     '00080160000198',
 //     '00080782000116'
 // ];
-
-
-
-    $html = $spider->fetchData();
-    $data = $spider->parseData($html);
-    print_r($data);
-    
 ?>
+

@@ -1,29 +1,95 @@
 <?php
 
-namespace Facebook\WebDriver; 
-use Facebook\WebDriver\Remote\DesiredCapabilities; 
-use Facebook\WebDriver\Remote\RemoteWebDriver; 
+require_once('vendor/autoload.php');
 
-header("Content-type: text/html; charset=utf-8");
+use Facebook\WebDriver\Remote\DesiredCapabilities;
+use Facebook\WebDriver\Remote\RemoteWebDriver;
+use Facebook\WebDriver\WebDriverBy;
 
-require_once('vendor/autoload.php'); 
+class SintegraSpider {
+    private $url = 'http://www.sintegra.fazenda.pr.gov.br/sintegra/';
+    private $driver;
 
-$serverUrl = 'http://localhost:4444/wd/hub';
+    public function __construct() {
+        $serverUrl = 'http://localhost:4444/wd/hub';
+        $this->driver = RemoteWebDriver::create($serverUrl, DesiredCapabilities::chrome());
+    }
 
-$driver = RemoteWebDriver::create($serverUrl, DesiredCapabilities::chrome());
+    public function fetchData() {
+        $this->driver->get($this->url);
 
-$driver->get('http://www.sintegra.fazenda.pr.gov.br/sintegra/');
+        $this->enterCaptchaAndCNPJ();
 
-$driver->findElement(WebDriverBy::id('Sintegra1CodImage')) 
-    ->sendKeys('');
+        $data = $this->fetchDataFromPages();
 
+        $this->driver->quit();
 
-$driver->findElement(WebDriverBy::id('imgSintegra'))->getAttribute('src');
+        return $data;
+    }
 
-echo  $captcha = 'Informe o texto da imagem: ';
+    private function enterCaptchaAndCNPJ() {
+        $this->driver->findElement(WebDriverBy::id('Sintegra1CodImage'))->sendKeys('');
+        $this->driver->findElement(WebDriverBy::id('imgSintegra'))->getAttribute('src');
 
-$driver->findElement(WebDriverBy::id('Sintegra1CodImage'))->sendKeys($captcha);
+        $captchaText = readline('Informe o texto da imagem (captcha): ');
+        $cnpjText = readline('Informe o CNPJ: ');
 
-$driver->findElement(WebDriverBy::id('btnConsultar'))->click();
+        $this->driver->findElement(WebDriverBy::id('Sintegra1Cnpj'))->sendKeys($cnpjText);
+        $this->driver->findElement(WebDriverBy::id('Sintegra1CodImage'))->sendKeys($captchaText);
+        $this->driver->findElement(WebDriverBy::id('empresa'))->click();
+    }
 
-$driver->quit();
+    private function fetchDataFromPages() {
+        $data = [];
+
+        while (true) {
+            $consultarButton = $this->driver->findElements(WebDriverBy::id('consultar'));
+            if (count($consultarButton) > 0) {
+                $consultarButton[0]->click();
+                $html = $this->driver->getPageSource();
+                $data[] = $this->parseData($html);
+            } else {
+                break;
+            }
+        }
+
+        return $data;
+    }
+
+    private function parseData($html) {
+        $pattern = '/<td class="form_conteudo">(.*?)<\/td>/s';
+        preg_match_all($pattern, $html, $matches);
+
+        $data = [];
+
+        if (isset($matches[1])) {
+            $data = [
+                'cnpj' => isset($matches[1][0]) ? strip_tags(trim($matches[1][0])) : '',
+                'ie' => isset($matches[1][1]) ? strip_tags(trim($matches[1][1])) : '',
+                'numero' => isset($matches[1][2]) ? strip_tags(trim($matches[1][2])) : '',
+                'uf' => isset($matches[1][3]) ? strip_tags(trim($matches[1][3])) : '',
+                'cep' => isset($matches[1][4]) ? strip_tags(trim($matches[1][4])) : '',
+                'inicio_atividade' => isset($matches[1][8]) ? strip_tags(trim($matches[1][8])) : '',
+                'situacao_atual' => isset($matches[1][9]) ? strip_tags(trim($matches[1][9])) : '',
+                'regime_tributario' => isset($matches[1][10]) ? strip_tags(trim($matches[1][10])) : '',
+                'atividades' => [
+                    'Atividade_principal' => isset($matches[1][5]) ? strip_tags(trim($matches[1][5])) : '',
+                    'atvidade_segundaria' => isset($matches[1][6]) ? strip_tags(trim($matches[1][6])) : '',
+                ]
+            ];
+        }
+
+        return $data;
+    }
+}
+
+$spider = new SintegraSpider();
+$dataArray = $spider->fetchData();
+
+if (empty($dataArray)) {
+    echo "O NúMERO DE CONTROLE DIGITADO NO CAPTCHA NãO CORRESPONDE AO NúMERO APRESENTADO NA IMAGEM.\n";
+} else {
+    echo "Dados do CNPJ\n";
+    print_r($dataArray);
+}
+?>
