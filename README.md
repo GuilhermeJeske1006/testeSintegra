@@ -23,3 +23,6 @@ php testeSpider.php
 Ao iniciar o sistema, o terminal solicitará o texto da imagem do captcha. Após inserir o texto, será requisitado o CNPJ a ser consultado.
 
 Uma vez que o usuário fornece os dados solicitados, o programa realiza uma varredura em todas as possíveis inscrições estaduais associadas a um mesmo CNPJ. Em seguida, os dados são armazenados em um array para posterior análise ou processamento.
+
+![image](https://github.com/GuilhermeJeske1006/testeSintegra/assets/97289331/a914dda4-1757-45bb-bb5c-5c8e0d4bae19)
+
