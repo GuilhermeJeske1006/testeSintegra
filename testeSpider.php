@@ -4,7 +4,6 @@ require_once('vendor/autoload.php');
 
 include 'index.php';
 
-
 $spider = new SintegraSpider();
 $dataArray = $spider->fetchData();
 
@@ -14,12 +13,5 @@ if (empty($dataArray)) {
     echo "Dados do CNPJ\n";
     print_r($dataArray);
 }
-
-// CNPJs para testar
-// $cnpjs = [
-//     '00063744000155',
-//     '00080160000198',
-//     '00080782000116'
-// ];
 ?>
 
