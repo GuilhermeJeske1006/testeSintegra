@@ -28,33 +28,53 @@ class SintegraSpider {
     }
 
     private function enterCaptchaAndCNPJ() {
-        $this->driver->findElement(WebDriverBy::id('Sintegra1CodImage'))->sendKeys('');
-        $this->driver->findElement(WebDriverBy::id('imgSintegra'))->getAttribute('src');
+        try {
+            $this->driver->findElement(WebDriverBy::id('Sintegra1CodImage'))->sendKeys('');
+            $this->driver->findElement(WebDriverBy::id('imgSintegra'))->getAttribute('src');
+    
+            $captchaText = readline('Informe o texto da imagem (captcha): ');
+            $cnpjText = readline('Informe o CNPJ: ');
+    
+            $this->driver->findElement(WebDriverBy::id('Sintegra1Cnpj'))->sendKeys($cnpjText);
+            $this->driver->findElement(WebDriverBy::id('Sintegra1CodImage'))->sendKeys($captchaText);
+            $this->driver->findElement(WebDriverBy::id('empresa'))->click();
 
-        $captchaText = readline('Informe o texto da imagem (captcha): ');
-        $cnpjText = readline('Informe o CNPJ: ');
-
-        $this->driver->findElement(WebDriverBy::id('Sintegra1Cnpj'))->sendKeys($cnpjText);
-        $this->driver->findElement(WebDriverBy::id('Sintegra1CodImage'))->sendKeys($captchaText);
-        $this->driver->findElement(WebDriverBy::id('empresa'))->click();
+        } catch (\Facebook\WebDriver\Exception\WebDriverException $e) {
+           print_r('Inscrição CNPJ Inválida.');
+           $this->driver->quit();
+           return;
+        }
+       
+        
     }
 
     private function fetchDataFromPages() {
         $data = [];
-
+    
         while (true) {
             $consultarButton = $this->driver->findElements(WebDriverBy::id('consultar'));
             if (count($consultarButton) > 0) {
                 $consultarButton[0]->click();
                 $html = $this->driver->getPageSource();
-                $data[] = $this->parseData($html);
+    
+                if (empty($html)) {
+                    return [
+                        'Ocorreu um erro ao obter os dados. Por favor, tente novamente.'
+                    ];
+                }
+    
+                $parsedData = $this->parseData($html);
+                if (!empty($parsedData)) {
+                    $data[] = $parsedData;
+                }
             } else {
                 break;
             }
         }
-
+    
         return $data;
     }
+    
 
     private function parseData($html) {
         $pattern = '/<td class="form_conteudo">(.*?)<\/td>/s';
